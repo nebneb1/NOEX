@@ -1,2 +1,2 @@
 # NOEX
-Over scoped multiplayer game
+Overscoped multiplayer game
