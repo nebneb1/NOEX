@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://btghtiwh6608b"]
+
+[ext_resource type="PackedScene" uid="uid://dg7q7hbt54kge" path="res://Scenes/player.tscn" id="1_qrgyg"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_kcgto"]
+size = Vector3(30, 0.01, 30)
+
+[node name="Planet1" type="Node3D"]
+
+[node name="CSGBox3D" type="CSGBox3D" parent="."]
+size = Vector3(30, 0.01, 30)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+shape = SubResource("BoxShape3D_kcgto")
+
+[node name="Node3D" parent="." instance=ExtResource("1_qrgyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.07747, 6.84285)
