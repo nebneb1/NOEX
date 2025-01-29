@@ -1,8 +1,6 @@
-[gd_scene load_steps=8 format=3 uid="uid://btghtiwh6608b"]
+[gd_scene load_steps=6 format=3 uid="uid://btghtiwh6608b"]
 
 [ext_resource type="Script" path="res://Scripts/multiplayer_spawner.gd" id="1_1vrcf"]
-[ext_resource type="PackedScene" uid="uid://dg7q7hbt54kge" path="res://Scenes/player.tscn" id="1_qrgyg"]
-[ext_resource type="Script" path="res://Scripts/steam.gd" id="2_yj0it"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cgkj4"]
 
@@ -17,9 +15,6 @@ bottom_radius = 0.51
 
 [node name="Planet1" type="Node3D"]
 
-[node name="Steam" type="Node" parent="."]
-script = ExtResource("2_yj0it")
-
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
 spawn_path = NodePath(".")
 script = ExtResource("1_1vrcf")
@@ -32,9 +27,6 @@ size = Vector3(30, 0.01, 30)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
 shape = SubResource("BoxShape3D_kcgto")
-
-[node name="Node3D" parent="." instance=ExtResource("1_qrgyg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.52032, -1.84818)
 
 [node name="CSGMesh3D" type="CSGMesh3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.983879, 2.26312)
