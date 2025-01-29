@@ -1,13 +1,31 @@
-[gd_scene load_steps=3 format=3 uid="uid://btghtiwh6608b"]
+[gd_scene load_steps=8 format=3 uid="uid://btghtiwh6608b"]
 
+[ext_resource type="Script" path="res://Scripts/multiplayer_spawner.gd" id="1_1vrcf"]
 [ext_resource type="PackedScene" uid="uid://dg7q7hbt54kge" path="res://Scenes/player.tscn" id="1_qrgyg"]
+[ext_resource type="Script" path="res://Scripts/steam.gd" id="2_yj0it"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cgkj4"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_kcgto"]
 size = Vector3(30, 0.01, 30)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6uk3g"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_rpb3d"]
+top_radius = 1.49
+bottom_radius = 0.51
+
 [node name="Planet1" type="Node3D"]
 
+[node name="Steam" type="Node" parent="."]
+script = ExtResource("2_yj0it")
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath(".")
+script = ExtResource("1_1vrcf")
+
 [node name="CSGBox3D" type="CSGBox3D" parent="."]
+material_override = SubResource("StandardMaterial3D_cgkj4")
 size = Vector3(30, 0.01, 30)
 
 [node name="StaticBody3D" type="StaticBody3D" parent="."]
@@ -16,4 +34,17 @@ size = Vector3(30, 0.01, 30)
 shape = SubResource("BoxShape3D_kcgto")
 
 [node name="Node3D" parent="." instance=ExtResource("1_qrgyg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.07747, 6.84285)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.52032, -1.84818)
+
+[node name="CSGMesh3D" type="CSGMesh3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.983879, 2.26312)
+material_override = SubResource("StandardMaterial3D_6uk3g")
+mesh = SubResource("CylinderMesh_rpb3d")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -0.900258, 0.435357, 0, -0.435357, -0.900258, 0, 0, 0)
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.29133, 4.27647)
+light_energy = 1.455
+omni_range = 11.8479

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://cj7c4436jj0bg"]
 
-[ext_resource type="Script" path="res://Scripts/LevelLoader.gd" id="1_punnf"]
+[ext_resource type="Script" path="res://Scripts/level_loader.gd" id="1_punnf"]
 
 [node name="LevelLoader" type="Control"]
 layout_mode = 3

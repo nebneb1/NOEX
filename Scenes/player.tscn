@@ -1,13 +1,16 @@
-[gd_scene load_steps=4 format=3 uid="uid://dg7q7hbt54kge"]
+[gd_scene load_steps=5 format=3 uid="uid://dg7q7hbt54kge"]
 
-[ext_resource type="Script" path="res://Scripts/PlayerController.gd" id="1_dhtav"]
+[ext_resource type="Script" path="res://Scripts/player_controller.gd" id="1_dhtav"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_ffwra"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_7vlpa"]
 
-[node name="Node3D" type="CharacterBody3D"]
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_7pkh4"]
+
+[node name="Node3D" type="CharacterBody3D" node_paths=PackedStringArray("camera")]
 script = ExtResource("1_dhtav")
+camera = NodePath("Camera3D")
 
 [node name="CSGMesh3D" type="CSGMesh3D" parent="."]
 mesh = SubResource("CapsuleMesh_ffwra")
@@ -17,3 +20,6 @@ shape = SubResource("CapsuleShape3D_7vlpa")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.597373, -0.479502)
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_7pkh4")
