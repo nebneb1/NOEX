@@ -20,8 +20,7 @@ const levels = {
 }
 
 var curr_level = ""
-
-
+#
 func _ready() -> void:
 	level_spawner.spawn_function = load_scene
 	peer.lobby_created.connect(_on_lobby_created)
