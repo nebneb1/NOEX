@@ -1,6 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://btghtiwh6608b"]
-
-[ext_resource type="Script" path="res://Scripts/multiplayer_spawner.gd" id="1_1vrcf"]
+[gd_scene load_steps=5 format=3 uid="uid://btghtiwh6608b"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cgkj4"]
 
@@ -14,10 +12,6 @@ top_radius = 1.49
 bottom_radius = 0.51
 
 [node name="Planet1" type="Node3D"]
-
-[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
-spawn_path = NodePath(".")
-script = ExtResource("1_1vrcf")
 
 [node name="CSGBox3D" type="CSGBox3D" parent="."]
 material_override = SubResource("StandardMaterial3D_cgkj4")

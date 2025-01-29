@@ -33,6 +33,3 @@ color = Color(0, 0, 0, 1)
 script = ExtResource("1_5bkdx")
 
 [node name="LevelHolder" type="Node3D" parent="."]
-
-[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
-spawn_path = NodePath("../LevelHolder")

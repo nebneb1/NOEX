@@ -15,17 +15,12 @@ var vel2D : Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-	camera.current
 	
 
 func _process(delta: float) -> void:
 	pass
 
 func _physics_process(delta: float) -> void:
-	if not is_multiplayer_authority():
-		return
-	
-	
 	var dir = Vector2(Input.get_action_strength("forward") - Input.get_action_strength("backward"), Input.get_action_strength("left") - Input.get_action_strength("right")).normalized()
 	
 	if dir.length() < DEADZOME: 
@@ -46,9 +41,6 @@ func _physics_process(delta: float) -> void:
 	
 
 func _input(event: InputEvent) -> void:
-	if not is_multiplayer_authority():
-		return
-		
 	if event is InputEventMouseMotion and mouse_control:
 		var delta_look_dir = event.relative * SENSITIVITY * 0.005
 		rotation.y += -delta_look_dir.x
