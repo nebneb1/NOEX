@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://btghtiwh6608b"]
+[gd_scene load_steps=7 format=3 uid="uid://btghtiwh6608b"]
 
 [ext_resource type="PackedScene" uid="uid://dg7q7hbt54kge" path="res://Scenes/player.tscn" id="1_5mkev"]
+[ext_resource type="Script" path="res://Scripts/player_holder.gd" id="1_wtfvw"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cgkj4"]
 
@@ -15,7 +16,10 @@ bottom_radius = 0.51
 
 [node name="Planet1" type="Node3D"]
 
-[node name="Node3D" parent="." instance=ExtResource("1_5mkev")]
+[node name="Players" type="Node3D" parent="."]
+script = ExtResource("1_wtfvw")
+
+[node name="Node3D" parent="Players" instance=ExtResource("1_5mkev")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.26675, 0)
 
 [node name="CSGBox3D" type="CSGBox3D" parent="."]

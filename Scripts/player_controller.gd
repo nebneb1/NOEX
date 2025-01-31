@@ -16,6 +16,7 @@ var vel2D : Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	camera.current = true
 	
 
 func _process(delta: float) -> void:
@@ -37,9 +38,7 @@ func _physics_process(delta: float) -> void:
 	velocity.y -= GRAVITY * delta * (1 + (velocity.y / TERMINAL_VELOCITY))
 	
 	move_and_slide()
-	
-	
-	
+	Net.send(Net.SendType.ALL_EXCLUSIVE, Net.PacketType.POSITION, position, false)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and mouse_control:
@@ -47,6 +46,7 @@ func _input(event: InputEvent) -> void:
 		
 		rotation.y += -delta_look_dir.x
 		camera.rotation.x = clamp(camera.rotation.x-delta_look_dir.y, Y_CLAMP[0], Y_CLAMP[1])
+		Net.send(Net.SendType.ALL_EXCLUSIVE, Net.PacketType.LOOK_DIR, Vector2(rotation.y, camera.rotation.x), false)
 	
 	
 	if event.is_action_pressed("exit"):

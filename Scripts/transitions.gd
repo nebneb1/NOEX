@@ -16,7 +16,7 @@ const levels = {
 var curr_level = "menu"
 
 func _ready():
-	pass
+	Global.trans = self
 
 var window_focused = false
 func _notification(what):

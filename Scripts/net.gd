@@ -9,9 +9,12 @@ enum SendType {
 }
 enum PacketType {
 	HANDSHAKE,
-	TRANSFORM,
+	POSITION,
+	LOOK_DIR,
 	VOICE
 }
+
+const PUPPET_PLAYER = preload("res://Scenes/puppet_player.tscn")
 
 var is_host : bool = false
 var lobby_id : int = 0
@@ -49,6 +52,8 @@ func _on_lobby_joined(id : int, perms : int, locked : int, response : int):
 		lobby_id = id
 		get_lobby_players()
 		send_network_handshake()
+		Global.trans.switch_scene(Global.trans.start_level)
+		Global.trans.fake_trans_to_level("from_black_one_way")
 	
 	
 
@@ -69,12 +74,17 @@ func get_lobby_players():
 		print(steam_username)
 		lobby_players.append({"steam_id": steam_id, "steam_name": steam_username})
 
+func create_puppet_player(steam_id : int):
+	var inst = PUPPET_PLAYER.instantiate()
+	inst.player_steam_id = steam_id
+	inst.player_name = Steam.getFriendPersonaName(steam_id)
+	Global.player_holder.add_child(inst)
+
 func send(send_type : SendType, packet_type : PacketType, packet_data, reliable : bool, channel : int = 0, to_id : int = 0):
-	var packet : Array = [packet_type, packet_data]
+	var packet : Array = [PacketType.keys()[int(packet_type)], packet_data]
 	var packet_bytes : PackedByteArray
 	var send_method : Steam.P2PSend = Steam.P2PSend.P2P_SEND_RELIABLE if reliable else Steam.P2PSend.P2P_SEND_RELIABLE
 	packet_bytes.append_array(var_to_bytes(packet))
-	print(send_type)
 	match send_type:
 		SendType.ONE:
 			Steam.sendP2PPacket(to_id, packet_bytes, send_method, channel)
@@ -87,8 +97,6 @@ func send(send_type : SendType, packet_type : PacketType, packet_data, reliable 
 					Steam.sendP2PPacket(player["steam_id"], packet_bytes, send_method, channel)
 		_:
 			print("send invalid", send_type)
-
-
 
 func read_all_packets(channel : int = 0):
 	var read_count : int = 0
@@ -105,12 +113,29 @@ func read_packet(channel : int = 0):
 		var packet_data_raw : Array = bytes_to_var(packet["data"])
 		var packet_type = packet_data_raw[0]
 		var packet_data = packet_data_raw[1]
-		packet_type
-		match PacketType.keys()[int(packet_data[0])]: # using this because the state is interperited as a int instead of the enum, so need less strict conditional
+		match packet_type: # using this because enums dont get sent lol
 			"HANDSHAKE":
+				print("HANDSHAKE")
 				print("Player ", str(packet_data), " joined!")
 				get_lobby_players()
-			"TRANSFORM":
-				pass
+			"POSITION":
+				print("POSITION")
+				for puppet in Global.puppet_players:
+					if puppet.player_steam_id == sender:
+						puppet.position = packet_data
+						return
+				
+				# if no player with id
+				create_puppet_player(sender)
+				
+			"LOOK_DIR":
+				print("LOOK_DIR")
+				for puppet in Global.puppet_players:
+					if puppet.player_steam_id == sender:
+						puppet.rotation.y = packet_data.x
+						return
+				
+				# if no player with id
+				create_puppet_player(sender)
 			"VOICE":
 				pass
