@@ -13,7 +13,10 @@ const levels = {
 	"fade_from_black" : $Transitions/FadeFromBlack
 }
 
-var curr_level = ""
+var curr_level = "menu"
+
+func _ready():
+	pass
 
 var window_focused = false
 func _notification(what):
@@ -26,18 +29,18 @@ func _notification(what):
 			
 func empty(): return
 
-func trans_to_level(level : String, type : String, time : float):
+func trans_to_level(level : String, type : String, time : float = 1.0):
 	match type:
 		"fade_from_black":
 			var tween = create_tween()
 			tween.tween_property(trans_nodes["fade_from_black"], "color:a", 1.0, time)
 			await tween.finished
-			switch_scene(levels[level])
+			switch_scene(level)
 			curr_level = level
 			var tween2 = create_tween()
 			tween2.tween_property(trans_nodes["fade_from_black"], "color:a", 0.0, time)
 
-func fake_trans_to_level(type : String, time : float, after : Callable = empty):
+func fake_trans_to_level(type : String, time : float = 1.0, after : Callable = empty):
 	match type:
 		"fade_from_black":
 			var tween = create_tween()
@@ -53,7 +56,21 @@ func fake_trans_to_level(type : String, time : float, after : Callable = empty):
 			tween.tween_property(trans_nodes["fade_from_black"], "color:a", 0.0, time)
 			after.call()
 
-func switch_scene(to: PackedScene):
+func switch_scene(to: String):
 	for child in level_holder.get_children():
 		child.queue_free()
-	level_holder.add_child(to.instantiate())
+		
+	level_holder.add_child(levels[to].instantiate())
+
+func _input(event: InputEvent) -> void:
+	if curr_level == "menu":
+		if event.is_action_pressed("host"):
+			switch_scene(start_level)
+			fake_trans_to_level("from_black_one_way")
+			Net.create_lobby(Steam.LobbyType.LOBBY_TYPE_FRIENDS_ONLY)
+			
+		elif event.is_action_pressed("join"):
+			var id : int = int($LevelHolder/Control/TextEdit.text)
+			if id != 0:
+				fake_trans_to_level("from_black_one_way")
+				Net.join_lobby(id)

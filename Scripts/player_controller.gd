@@ -7,6 +7,7 @@ const GRAVITY = 200.0
 const TERMINAL_VELOCITY = 30.0
 const DRAG = 100.0
 const DEADZOME = 0.1
+const Y_CLAMP = [-PI / 2.0 - 0.1, PI / 2.0 - 0.1]
 
 @export var camera : Camera3D
 
@@ -43,8 +44,9 @@ func _physics_process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and mouse_control:
 		var delta_look_dir = event.relative * SENSITIVITY * 0.005
+		
 		rotation.y += -delta_look_dir.x
-		camera.rotation.x += -delta_look_dir.y
+		camera.rotation.x = clamp(camera.rotation.x-delta_look_dir.y, Y_CLAMP[0], Y_CLAMP[1])
 	
 	
 	if event.is_action_pressed("exit"):
