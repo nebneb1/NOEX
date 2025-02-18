@@ -16,10 +16,18 @@ enum PacketType {
 
 const PUPPET_PLAYER = preload("res://Scenes/puppet_player.tscn")
 
+
 var is_host : bool = false
+
 var lobby_id : int = 0
+
 var lobby_players : Array = []
+
 var max_players = 4
+
+var packet_number : int = 0
+
+var voip_packet_number : int = 0
 
 func _ready() -> void:
 	Steam.lobby_created.connect(_on_lobby_created)
@@ -29,6 +37,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if lobby_id > 0:
 		read_all_packets()
+
 
 
 func create_lobby(type : Steam.LobbyType = Steam.LobbyType.LOBBY_TYPE_PUBLIC):
@@ -49,13 +58,13 @@ func _on_lobby_created(connect: int, id : int):
 
 func _on_lobby_joined(id : int, perms : int, locked : int, response : int):
 	if response == Steam.CHAT_ROOM_ENTER_RESPONSE_SUCCESS:
+		#Global.update_voice_mode(Global.voice_mode)
 		lobby_id = id
 		get_lobby_players()
 		send_network_handshake()
 		Global.trans.switch_scene(Global.trans.start_level)
 		Global.trans.fake_trans_to_level("from_black_one_way")
-	
-	
+
 
 func _on_session_request(id):
 	var requester : String = Steam.getFriendPersonaName(id)
@@ -80,10 +89,24 @@ func create_puppet_player(steam_id : int):
 	inst.player_name = Steam.getFriendPersonaName(steam_id)
 	Global.player_holder.add_child(inst)
 
-func send(send_type : SendType, packet_type : PacketType, packet_data, reliable : bool, channel : int = 0, to_id : int = 0):
-	var packet : Array = [PacketType.keys()[int(packet_type)], packet_data]
+
+
+
+func send(send_type : SendType, packet_type : PacketType, packet_data, reliable : bool, raw : bool = false, channel : int = 0, to_id : int = 0):
+	var packet
+	#if raw:
+		#packet = packet_data
+	#else:
+	match packet_type:
+		PacketType.VOICE:
+			packet = [voip_packet_number, PacketType.keys()[int(packet_type)], packet_data]
+			voip_packet_number += 1
+		_:
+			packet = [packet_number, PacketType.keys()[int(packet_type)], packet_data]
+	packet_number += 1
+	
 	var packet_bytes : PackedByteArray
-	var send_method : Steam.P2PSend = Steam.P2PSend.P2P_SEND_RELIABLE if reliable else Steam.P2PSend.P2P_SEND_RELIABLE
+	var send_method : Steam.P2PSend = Steam.P2PSend.P2P_SEND_RELIABLE if reliable else Steam.P2PSend.P2P_SEND_UNRELIABLE
 	packet_bytes.append_array(var_to_bytes(packet))
 	match send_type:
 		SendType.ONE:
@@ -110,32 +133,53 @@ func read_packet(channel : int = 0):
 	if packet_size > 0:
 		var packet : Dictionary = Steam.readP2PPacket(packet_size, channel)
 		var sender : int = packet["remote_steam_id"] 
-		var packet_data_raw : Array = bytes_to_var(packet["data"])
-		var packet_type = packet_data_raw[0]
-		var packet_data = packet_data_raw[1]
+		var packet_data_raw = bytes_to_var(packet["data"])
+		var packet_number = packet_data_raw[0]
+		var packet_type = packet_data_raw[1]
+		var packet_data = packet_data_raw[2]
+		#match typeof(packet_data_raw):
+			#TYPE_ARRAY:
+				#packet_type = packet_data_raw[0]
+				#packet_data = packet_data_raw[1]
+			#TYPE_PACKED_BYTE_ARRAY:
+				#packet_type = "VOICE"
+				#packet_data = packet_data_raw
+			#
+			#_:
+				#printerr("Invalid Packet Type: ", typeof(packet_data_raw))
+				#return
 		match packet_type: # using this because enums dont get sent lol
 			"HANDSHAKE":
 				print("HANDSHAKE")
 				print("Player ", str(packet_data), " joined!")
 				get_lobby_players()
+				if sender != Global.steam_id and not Global.get_puppet_player(sender):
+					create_puppet_player(sender)
 			"POSITION":
 				print("POSITION")
-				for puppet in Global.puppet_players:
-					if puppet.player_steam_id == sender:
-						puppet.position = packet_data
-						return
-				
-				# if no player with id
-				create_puppet_player(sender)
+				var puppet_player = Global.get_puppet_player(sender)
+				if puppet_player:
+					puppet_player.position = packet_data
+				else : create_puppet_player(sender)
 				
 			"LOOK_DIR":
 				print("LOOK_DIR")
-				for puppet in Global.puppet_players:
-					if puppet.player_steam_id == sender:
-						puppet.rotation.y = packet_data.x
-						return
-				
-				# if no player with id
-				create_puppet_player(sender)
+				var puppet_player = Global.get_puppet_player(sender)
+				if puppet_player:
+					puppet_player.rotation.y = packet_data.x
+					puppet_player.get_node("Face").rotation.x = packet_data.y
+				else : create_puppet_player(sender)
 			"VOICE":
-				pass
+				print("VOICE")
+				var puppet_player = Global.get_puppet_player(sender)
+				if puppet_player:
+					puppet_player.process_voice_data(packet_data, packet_number)
+				else : create_puppet_player(sender)
+
+
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("invite") and lobby_id > 0:
+		print("inv dialog")
+		Steam.activateGameOverlayInviteDialog(lobby_id)

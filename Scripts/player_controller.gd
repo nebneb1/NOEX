@@ -13,6 +13,7 @@ const Y_CLAMP = [-PI / 2.0 - 0.1, PI / 2.0 - 0.1]
 
 var mouse_control = true
 var vel2D : Vector2 = Vector2.ZERO
+var prev_pos : Vector3
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -38,7 +39,10 @@ func _physics_process(delta: float) -> void:
 	velocity.y -= GRAVITY * delta * (1 + (velocity.y / TERMINAL_VELOCITY))
 	
 	move_and_slide()
-	Net.send(Net.SendType.ALL_EXCLUSIVE, Net.PacketType.POSITION, position, false)
+	if prev_pos != position: # here we only send movement packets if the player is moving
+		Net.send(Net.SendType.ALL_EXCLUSIVE, Net.PacketType.POSITION, position, false)
+	
+	prev_pos = position
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and mouse_control:

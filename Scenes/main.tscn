@@ -1,6 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://bsipjg8ax5w21"]
+[gd_scene load_steps=4 format=3 uid="uid://cj7c4436jj0bg"]
 
 [ext_resource type="Script" path="res://Scripts/transitions.gd" id="2_aew1l"]
+[ext_resource type="Script" path="res://Scripts/voip_input.gd" id="2_neq2n"]
+
+[sub_resource type="AudioStreamMicrophone" id="AudioStreamMicrophone_j6isb"]
 
 [node name="Main" type="Control" node_paths=PackedStringArray("level_holder")]
 layout_mode = 3
@@ -59,3 +62,9 @@ offset_bottom = 19.0
 grow_horizontal = 2
 grow_vertical = 2
 placeholder_text = "Lobby ID goes here"
+
+[node name="VOIPInput" type="AudioStreamPlayer" parent="."]
+stream = SubResource("AudioStreamMicrophone_j6isb")
+autoplay = true
+bus = &"Record"
+script = ExtResource("2_neq2n")
