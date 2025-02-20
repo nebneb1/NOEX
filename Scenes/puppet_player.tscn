@@ -57,4 +57,9 @@ text = "Player"
 
 [node name="VOIPPlayback" type="AudioStreamPlayer3D" parent="."]
 stream = SubResource("AudioStreamOpusChunked_rhmvs")
+unit_size = 3.19
 autoplay = true
+max_distance = 16.05
+bus = &"Players"
+emission_angle_enabled = true
+emission_angle_degrees = 70.0

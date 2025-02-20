@@ -4,11 +4,10 @@ extends AudioStreamPlayer
 #var voip_input_playback : AudioStreamGeneratorPlayback
 
 var record_effect : AudioEffectOpusChunked
-var vol_effect : AudioEffectSpectrumAnalyzer
+var vol_effect : AudioEffectSpectrumAnalyzerInstance
 
 func _ready() -> void:
-	record_effect = AudioServer.get_bus_effect(AudioServer.get_bus_index("Record"), 0)
-	vol_effect = AudioServer.get_bus_effect(AudioServer.get_bus_index("Record"), 1)
+	record_effect = AudioServer.get_bus_effect(AudioServer.get_bus_index("Chunked"), 0)
 	#stream.mix_rate = Global.voip_sample_rate
 	
 	
@@ -18,6 +17,7 @@ func _ready() -> void:
 	#
 
 func _process(_delta: float):
+	
 	process_voice()
 
 
@@ -28,8 +28,8 @@ func process_voice() -> void:
 	while record_effect.chunk_available():
 		var opusdata : PackedByteArray = record_effect.read_opus_packet(prepend)
 		record_effect.drop_chunk()
-		
-		Net.send(Net.SendType.ALL_EXCLUSIVE, Net.PacketType.VOICE, opusdata, false)
+		if true or Global.mic_vol > Settings.voice_threshold:
+			Net.send(Net.SendType.ALL_EXCLUSIVE, Net.PacketType.VOICE, opusdata, false)
 	
 	
 	#var stereo_data : PackedVector2Array = record_effect.get_buffer(record_effect.get_frames_available())

@@ -83,10 +83,11 @@ func get_lobby_players():
 		print(steam_username)
 		lobby_players.append({"steam_id": steam_id, "steam_name": steam_username})
 
-func create_puppet_player(steam_id : int):
+func create_puppet_player(steam_id : int, debug = false):
 	var inst = PUPPET_PLAYER.instantiate()
 	inst.player_steam_id = steam_id
 	inst.player_name = Steam.getFriendPersonaName(steam_id)
+	inst.debug = debug
 	Global.player_holder.add_child(inst)
 
 

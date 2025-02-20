@@ -1,6 +1,7 @@
 extends CharacterBody3D
 var player_name : String = ""
 var player_steam_id : int = 0
+var debug = false
 #var voip_playback : AudioStreamGeneratorPlayback
 #var voip_playback_buffer : PackedByteArray = PackedByteArray()
 var buffer: Array = []
@@ -17,9 +18,13 @@ func _ready() -> void:
 	#playback_node.stream.mix_rate = Global.voip_sample_rate
 	#playback_node.play()
 	#voip_playback = playback_node.get_stream_playback()
-	
-	
 	Global.puppet_players.append(self)
+	Global.menu.update_players()
+
+
+func update_volume(volume : float):
+	playback_node.volume_db = clamp(linear_to_db(volume), -INF, 10.0)
+	
 
 @onready var audio_stream : AudioStreamOpusChunked
 var prev_pushed_paket_number = -1
@@ -27,6 +32,7 @@ var prev_pushed_paket_number = -1
 func _process(delta):
 	#print("qframes:", audio_stream.queue_length_frames())
 	#print("getlen:", audio_stream.get_length())
+	if debug: return
 	if buffer.size() > 10:
 		audio_playing = true
 	
@@ -92,8 +98,13 @@ func _process(delta):
 func sort_ascending(a, b):
 	return a[0] < b[0]
 
+func delete():
+	Global.puppet_players.erase(self)
+	Global.menu.update_players()
+	queue_free()
 
 func process_voice_data(voice_data: PackedByteArray, packet_number : int) -> void:
+	if debug: return
 	buffer.append([packet_number, voice_data])
 	buffer.sort_custom(sort_ascending)
 	
