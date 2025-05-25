@@ -16,7 +16,6 @@ enum PacketType {
 
 const PUPPET_PLAYER = preload("res://Scenes/puppet_player.tscn")
 
-
 var is_host : bool = false
 
 var lobby_id : int = 0
@@ -26,8 +25,20 @@ var lobby_players : Array = []
 var max_players = 4
 
 var packet_number : int = 0
+var previous_packet_numbers : Dictionary = {
+	"LOOK_DIR" : 0,
+	"POSITION" : 0
+}
 
 var voip_packet_number : int = 0
+
+# NETWORK DEBUG SETTINGS
+const AUTO_SETUP = true
+const AUTO_SETUP_FILE = "res://auto_join.dat"
+
+const ARTIFICIAL_LATENCY = true
+const PERCENT_PACKET_DROP = 1
+const DELAY = [1.00, 1.20]
 
 func _ready() -> void:
 	Steam.lobby_created.connect(_on_lobby_created)
@@ -54,6 +65,11 @@ func _on_lobby_created(connect: int, id : int):
 		
 		Steam.setLobbyData(lobby_id, "name", Steam.getPersonaName() + "'s Lobby")
 		print(lobby_id)
+		if AUTO_SETUP:
+			var file = FileAccess.open(AUTO_SETUP_FILE, FileAccess.WRITE)
+			file.store_var(lobby_id)
+			file.close()
+			
 		var set_relay : bool = Steam.allowP2PPacketRelay(true)
 
 func _on_lobby_joined(id : int, perms : int, locked : int, response : int):
@@ -94,6 +110,10 @@ func create_puppet_player(steam_id : int, debug = false):
 
 
 func send(send_type : SendType, packet_type : PacketType, packet_data, reliable : bool, raw : bool = false, channel : int = 0, to_id : int = 0):
+	if ARTIFICIAL_LATENCY:
+		if randi_range(1, 100) <= PERCENT_PACKET_DROP:
+			return
+		await get_tree().create_timer(randf_range(DELAY[0], DELAY[1])).timeout
 	var packet
 	#if raw:
 		#packet = packet_data
@@ -129,9 +149,16 @@ func read_all_packets(channel : int = 0):
 		read_packet(channel)
 		read_count += 1
 
+func out_of_order(num : int, type : String):
+	if num < previous_packet_numbers[type]:
+		return true
+	previous_packet_numbers[type] = num
+	return false
+
 func read_packet(channel : int = 0):
 	var packet_size = Steam.getAvailableP2PPacketSize(channel)
 	if packet_size > 0:
+		
 		var packet : Dictionary = Steam.readP2PPacket(packet_size, channel)
 		var sender : int = packet["remote_steam_id"] 
 		var packet_data_raw = bytes_to_var(packet["data"])
@@ -149,6 +176,7 @@ func read_packet(channel : int = 0):
 			#_:
 				#printerr("Invalid Packet Type: ", typeof(packet_data_raw))
 				#return
+		
 		match packet_type: # using this because enums dont get sent lol
 			"HANDSHAKE":
 				print("HANDSHAKE")
@@ -157,13 +185,16 @@ func read_packet(channel : int = 0):
 				if sender != Global.steam_id and not Global.get_puppet_player(sender):
 					create_puppet_player(sender)
 			"POSITION":
+				if out_of_order(packet_number, "POSITION"): return
 				print("POSITION")
 				var puppet_player = Global.get_puppet_player(sender)
 				if puppet_player:
 					puppet_player.position = packet_data
 				else : create_puppet_player(sender)
+				previous_packet_numbers["POSITION"] = packet_number
 				
 			"LOOK_DIR":
+				if out_of_order(packet_number, "LOOK_DIR"): return
 				print("LOOK_DIR")
 				var puppet_player = Global.get_puppet_player(sender)
 				if puppet_player:

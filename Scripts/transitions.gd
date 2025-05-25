@@ -17,7 +17,17 @@ var curr_level = "menu"
 
 func _ready():
 	Global.trans = self
-
+	if Net.AUTO_SETUP:
+		if FileAccess.file_exists(Net.AUTO_SETUP_FILE):
+			var file = FileAccess.open(Net.AUTO_SETUP_FILE, FileAccess.READ)
+			var lobby_id = file.get_var()
+			file.close()
+			var dir = DirAccess.open("res://")
+			dir.remove(Net.AUTO_SETUP_FILE.split("/")[-1])
+			join_lobby(lobby_id)
+		else:
+			host_lobby()
+#
 var window_focused = false
 func _notification(what):
 	if what == NOTIFICATION_FOCUS_ENTER:
@@ -25,6 +35,12 @@ func _notification(what):
 		
 	elif what == NOTIFICATION_FOCUS_EXIT:
 		window_focused = false
+	
+	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
+		var dir = DirAccess.open("res://")
+		dir.remove(Net.AUTO_SETUP_FILE.split("/")[-1])
+		get_tree().quit()
+		
 		
 			
 func empty(): return
@@ -65,12 +81,18 @@ func switch_scene(to: String):
 func _input(event: InputEvent) -> void:
 	if curr_level == "menu":
 		if event.is_action_pressed("host"):
-			switch_scene(start_level)
-			fake_trans_to_level("from_black_one_way")
-			Net.create_lobby(Steam.LobbyType.LOBBY_TYPE_FRIENDS_ONLY)
+			host_lobby()
 			
 		elif event.is_action_pressed("join"):
-			var id : int = int($LevelHolder/Control/TextEdit.text)
-			if id != 0:
-				fake_trans_to_level("from_black_one_way")
-				Net.join_lobby(id)
+			#var id : int = int($LevelHolder/Control/TextEdit.text)
+			join_lobby(int($LevelHolder/Control/TextEdit.text))
+
+func host_lobby():
+	switch_scene(start_level)
+	fake_trans_to_level("from_black_one_way")
+	Net.create_lobby(Steam.LobbyType.LOBBY_TYPE_FRIENDS_ONLY)
+
+func join_lobby(id : int):
+	if id != 0:
+		fake_trans_to_level("from_black_one_way")
+		Net.join_lobby(id)

@@ -12,6 +12,7 @@ config_version=5
 
 config/name="NOEX"
 run/main_scene="res://Scenes/main.tscn"
+config/auto_accept_quit=false
 config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
 

@@ -31,8 +31,8 @@ func _ready() -> void:
 	
 
 func _process(delta: float) -> void:
-	print(jump_charging, jump_charge)
-	print(velocity.y)
+	#print(jump_charging, jump_charge)
+	#print(velocity.y)
 	if jump_charging:
 		jump_charge = clamp(jump_charge + JUMP_CHARGE_RATE * delta, 0.0, 1.0)
 
