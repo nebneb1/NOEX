@@ -1,0 +1,61 @@
+[gd_scene load_steps=2 format=3 uid="uid://bfxluiesgnvul"]
+
+[ext_resource type="Script" path="res://Scripts/debug.gd" id="1_04clu"]
+
+[node name="debug" type="Control" node_paths=PackedStringArray("console")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_04clu")
+console = NodePath("ConsoleBg/ConsoleMargins/Console")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Label" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "1"
+
+[node name="Label2" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "2"
+
+[node name="ConsoleBg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -121.0
+offset_right = 431.0
+grow_vertical = 0
+color = Color(0, 0, 0, 0.219608)
+
+[node name="ConsoleMargins" type="MarginContainer" parent="ConsoleBg"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="Console" type="RichTextLabel" parent="ConsoleBg/ConsoleMargins"]
+layout_mode = 2
+size_flags_vertical = 9
+bbcode_enabled = true
+text = "
+
+
+
+
+"
+scroll_active = false

@@ -2,7 +2,6 @@ extends CharacterBody3D
 
 
 #movement
-
 const SENSITIVITY = 1.0
 const MAX_SPEED = 5.0
 const ACCEL = 100.0
@@ -68,6 +67,7 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("jump"):
 		jump_charging = true
 		jump_charge = DEFAULT_JUMP_CHARGE
+	
 	elif event.is_action_released("jump"):
 		jump_charging = false
 		velocity.y = JUMP_HEIGHT * jump_charge

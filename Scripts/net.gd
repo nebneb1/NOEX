@@ -31,6 +31,10 @@ var previous_packet_numbers : Dictionary = {
 	"POSITION" : 0
 }
 
+var player_net_data = [
+	
+]
+
 var voip_packet_number : int = 0
 
 # NETWORK DEBUG SETTINGS
@@ -62,7 +66,7 @@ func join_lobby(id : int = -2):
 		Steam.joinLobby(lobby_id)
 
 func leave_lobby(id : int = -2):
-	#send_network_leave()
+	send_network_leave()
 	#await get_tree().create_timer(1.0)
 	if id != -2:
 		Steam.leaveLobby(id)
@@ -75,7 +79,7 @@ func _on_lobby_created(connect: int, id : int):
 		Steam.setLobbyJoinable(lobby_id, true)
 		
 		Steam.setLobbyData(lobby_id, "name", Steam.getPersonaName() + "'s Lobby")
-		print(lobby_id)
+		Debug.push("lobby id: " + str(lobby_id), Debug.INFO)
 		if AUTO_SETUP:
 			var file = FileAccess.open(AUTO_SETUP_FILE, FileAccess.WRITE)
 			file.store_var(lobby_id)
@@ -100,9 +104,9 @@ func _on_session_request(id):
 func send_network_handshake():
 	send(SendType.ALL, PacketType.HANDSHAKE, Global.steam_username, true)
 
-#func send_network_leave():
-	#print("leave")
-	#send(SendType.ALL_EXCLUSIVE, PacketType.LEAVE, Global.steam_username, true)
+func send_network_leave():
+	print("leave")
+	send(SendType.ALL_EXCLUSIVE, PacketType.LEAVE, Global.steam_username, true)
 
 func get_lobby_players():
 	lobby_players.clear()
@@ -113,6 +117,8 @@ func get_lobby_players():
 		var steam_username : String = Steam.getFriendPersonaName(steam_id)
 		print(steam_username)
 		lobby_players.append({"steam_id": steam_id, "steam_name": steam_username})
+		
+		#player_net_data.append()
 
 
 func send(send_type : SendType, packet_type : PacketType, packet_data, reliable : bool, raw : bool = false, channel : int = 0, to_id : int = 0):
@@ -146,7 +152,7 @@ func send(send_type : SendType, packet_type : PacketType, packet_data, reliable 
 				if player["steam_id"] != Global.steam_id:
 					Steam.sendP2PPacket(player["steam_id"], packet_bytes, send_method, channel)
 		_:
-			print("send invalid", send_type)
+			Debug.push("Packet send type invalid: " + str(send_type), Debug.ALERT)
 
 func read_all_packets(channel : int = 0):
 	var read_count : int = 0
@@ -184,13 +190,13 @@ func read_packet(channel : int = 0):
 		if PRINT_PACKET_DEBUG: print(packet_type)
 		match packet_type: # using this because enums dont get sent lol
 			"HANDSHAKE":
-				print("Player ", str(packet_data), " joined!")
+				Debug.push("Player " + str(packet_data) + " joined!")
 				get_lobby_players()
 				if sender != Global.steam_id and not Global.get_puppet_player(sender):
 					Global.create_puppet_player(sender)
 			
 			"LEAVE":
-				print("Player ", str(packet_data), " is no longer with us.")
+				Debug.push("Player " + str(packet_data) + " is no longer with us.")
 				get_lobby_players()
 				if sender != Global.steam_id:
 					Global.remove_puppet_player(sender)
@@ -201,7 +207,6 @@ func read_packet(channel : int = 0):
 				if puppet_player:
 					puppet_player.position = packet_data
 				else : Global.create_puppet_player(sender)
-				previous_packet_numbers["POSITION"] = packet_number
 				
 			"LOOK_DIR":
 				if out_of_order(packet_number, "LOOK_DIR"): return
@@ -222,8 +227,8 @@ func read_packet(channel : int = 0):
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("debug"):
-		leave_lobby()
+	#if event.is_action_pressed("debug"):
+		#leave_lobby()
 	
 	if event.is_action_pressed("invite") and lobby_id > 0:
 		print("inv dialog")

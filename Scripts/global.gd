@@ -2,7 +2,7 @@ extends Node
 
 const SAVE_FOLDER = "save_data"
 const PUPPET_PLAYER = preload("res://Scenes/puppet_player.tscn")
-
+const DEBUG = true
 
 enum VoiceMode {
 	ALWAYS_ON,
@@ -28,13 +28,13 @@ var mic_vol : float = 0.0
 func _ready():
 	OS.set_environment("SteamAppID", str(480))
 	OS.set_environment("SteamGameID", str(480))
-	print(Steam.steamInit(false, 480)["verbal"])
+	Debug.push(Steam.steamInit(false, 480)["verbal"], Debug.INFO)
 	
 	
 	steam_id = Steam.getSteamID()
 	steam_username = Steam.getPersonaName()
-	print(steam_username, " ", steam_id)
-	
+	Debug.push(steam_username + " " + str(steam_id), Debug.INFO)
+	Debug.track(self, "puppet_players")
 	
 	_vol_effect_instance = get_audio_effect_instance("Record", vol_effect)
 	var dir = DirAccess.open("user://")
