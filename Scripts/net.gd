@@ -11,10 +11,11 @@ enum PacketType {
 	HANDSHAKE,
 	POSITION,
 	LOOK_DIR,
-	VOICE
+	VOICE,
+	LEAVE
 }
 
-const PUPPET_PLAYER = preload("res://Scenes/puppet_player.tscn")
+
 
 var is_host : bool = false
 
@@ -33,6 +34,7 @@ var previous_packet_numbers : Dictionary = {
 var voip_packet_number : int = 0
 
 # NETWORK DEBUG SETTINGS
+const PRINT_PACKET_DEBUG = false
 const AUTO_SETUP = true
 const AUTO_SETUP_FILE = "res://auto_join.dat"
 
@@ -49,14 +51,23 @@ func _process(delta: float) -> void:
 	if lobby_id > 0:
 		read_all_packets()
 
-
-
 func create_lobby(type : Steam.LobbyType = Steam.LobbyType.LOBBY_TYPE_PUBLIC):
 	if lobby_id == 0: 
 		Steam.createLobby(Steam.LobbyType.LOBBY_TYPE_PUBLIC, max_players)
 
-func join_lobby(id : int):
-	Steam.joinLobby(id)
+func join_lobby(id : int = -2):
+	if id != -2:
+		Steam.joinLobby(id)
+	else:
+		Steam.joinLobby(lobby_id)
+
+func leave_lobby(id : int = -2):
+	#send_network_leave()
+	#await get_tree().create_timer(1.0)
+	if id != -2:
+		Steam.leaveLobby(id)
+	else:
+		Steam.leaveLobby(lobby_id)
 
 func _on_lobby_created(connect: int, id : int):
 	if connect == 1:
@@ -89,6 +100,10 @@ func _on_session_request(id):
 func send_network_handshake():
 	send(SendType.ALL, PacketType.HANDSHAKE, Global.steam_username, true)
 
+#func send_network_leave():
+	#print("leave")
+	#send(SendType.ALL_EXCLUSIVE, PacketType.LEAVE, Global.steam_username, true)
+
 func get_lobby_players():
 	lobby_players.clear()
 	
@@ -99,19 +114,10 @@ func get_lobby_players():
 		print(steam_username)
 		lobby_players.append({"steam_id": steam_id, "steam_name": steam_username})
 
-func create_puppet_player(steam_id : int, debug = false):
-	var inst = PUPPET_PLAYER.instantiate()
-	inst.player_steam_id = steam_id
-	inst.player_name = Steam.getFriendPersonaName(steam_id)
-	inst.debug = debug
-	Global.player_holder.add_child(inst)
-
-
-
 
 func send(send_type : SendType, packet_type : PacketType, packet_data, reliable : bool, raw : bool = false, channel : int = 0, to_id : int = 0):
 	if ARTIFICIAL_LATENCY:
-		if randi_range(1, 100) <= PERCENT_PACKET_DROP:
+		if not reliable and randi_range(1, 100) <= PERCENT_PACKET_DROP:
 			return
 		await get_tree().create_timer(randf_range(DELAY[0], DELAY[1])).timeout
 	var packet
@@ -158,7 +164,6 @@ func out_of_order(num : int, type : String):
 func read_packet(channel : int = 0):
 	var packet_size = Steam.getAvailableP2PPacketSize(channel)
 	if packet_size > 0:
-		
 		var packet : Dictionary = Steam.readP2PPacket(packet_size, channel)
 		var sender : int = packet["remote_steam_id"] 
 		var packet_data_raw = bytes_to_var(packet["data"])
@@ -176,42 +181,50 @@ func read_packet(channel : int = 0):
 			#_:
 				#printerr("Invalid Packet Type: ", typeof(packet_data_raw))
 				#return
-		
+		if PRINT_PACKET_DEBUG: print(packet_type)
 		match packet_type: # using this because enums dont get sent lol
 			"HANDSHAKE":
-				print("HANDSHAKE")
 				print("Player ", str(packet_data), " joined!")
 				get_lobby_players()
 				if sender != Global.steam_id and not Global.get_puppet_player(sender):
-					create_puppet_player(sender)
+					Global.create_puppet_player(sender)
+			
+			"LEAVE":
+				print("Player ", str(packet_data), " is no longer with us.")
+				get_lobby_players()
+				if sender != Global.steam_id:
+					Global.remove_puppet_player(sender)
+			
 			"POSITION":
 				if out_of_order(packet_number, "POSITION"): return
-				print("POSITION")
 				var puppet_player = Global.get_puppet_player(sender)
 				if puppet_player:
 					puppet_player.position = packet_data
-				else : create_puppet_player(sender)
+				else : Global.create_puppet_player(sender)
 				previous_packet_numbers["POSITION"] = packet_number
 				
 			"LOOK_DIR":
 				if out_of_order(packet_number, "LOOK_DIR"): return
-				print("LOOK_DIR")
 				var puppet_player = Global.get_puppet_player(sender)
 				if puppet_player:
 					puppet_player.rotation.y = packet_data.x
 					puppet_player.get_node("Face").rotation.x = packet_data.y
-				else : create_puppet_player(sender)
+				else : Global.create_puppet_player(sender)
+			
 			"VOICE":
-				print("VOICE")
 				var puppet_player = Global.get_puppet_player(sender)
 				if puppet_player:
 					puppet_player.process_voice_data(packet_data, packet_number)
-				else : create_puppet_player(sender)
+				else : Global.create_puppet_player(sender)
+			
 
 
 
 
 func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("debug"):
+		leave_lobby()
+	
 	if event.is_action_pressed("invite") and lobby_id > 0:
 		print("inv dialog")
 		Steam.activateGameOverlayInviteDialog(lobby_id)

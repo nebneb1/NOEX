@@ -35,11 +35,6 @@ func _notification(what):
 		
 	elif what == NOTIFICATION_FOCUS_EXIT:
 		window_focused = false
-	
-	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
-		var dir = DirAccess.open("res://")
-		dir.remove(Net.AUTO_SETUP_FILE.split("/")[-1])
-		get_tree().quit()
 		
 		
 			

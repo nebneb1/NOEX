@@ -1,6 +1,8 @@
 extends Node
 
 const SAVE_FOLDER = "save_data"
+const PUPPET_PLAYER = preload("res://Scenes/puppet_player.tscn")
+
 
 enum VoiceMode {
 	ALWAYS_ON,
@@ -58,11 +60,24 @@ func _process(delta: float) -> void:
 		if not is_instance_valid(puppet):
 			puppet_players.erase(puppet)
 
+func create_puppet_player(steam_id : int, debug = false):
+	var inst = PUPPET_PLAYER.instantiate()
+	inst.player_steam_id = steam_id
+	inst.player_name = Steam.getFriendPersonaName(steam_id)
+	inst.debug = debug
+	player_holder.add_child(inst)
+
 func get_puppet_player(steam_id : int):
 	for puppet in puppet_players:
 		if puppet.player_steam_id == steam_id:
 			return puppet
 	return null
+
+func remove_puppet_player(steam_id : int):
+	for puppet in puppet_players:
+		if puppet.player_steam_id == steam_id:
+			puppet.delete()
+	
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("exit"):
@@ -77,6 +92,16 @@ func _input(event: InputEvent) -> void:
 			mouse_control = true
 			menu.hide()
 			Settings.save_settings()
+
+func _notification(what):
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if Net.AUTO_SETUP:
+			var dir = DirAccess.open("res://")
+			dir.remove(Net.AUTO_SETUP_FILE.split("/")[-1])
+		Net.leave_lobby()
+		#await get_tree().create_timer(1.0)
+		get_tree().quit()
+
 
 #func update_voice_mode(new_mode : VoiceMode) -> void:
 	#voice_mode = new_mode
