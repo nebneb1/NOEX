@@ -34,7 +34,7 @@ func _ready():
 	steam_id = Steam.getSteamID()
 	steam_username = Steam.getPersonaName()
 	Debug.push(steam_username + " " + str(steam_id), Debug.INFO)
-	Debug.track(self, "puppet_players")
+	Debug.track(self, "puppet_players", false, "Players")
 	
 	_vol_effect_instance = get_audio_effect_instance("Record", vol_effect)
 	var dir = DirAccess.open("user://")
@@ -64,6 +64,7 @@ func create_puppet_player(steam_id : int, debug = false):
 	var inst = PUPPET_PLAYER.instantiate()
 	inst.player_steam_id = steam_id
 	inst.player_name = Steam.getFriendPersonaName(steam_id)
+	inst.name = inst.player_name
 	inst.debug = debug
 	player_holder.add_child(inst)
 

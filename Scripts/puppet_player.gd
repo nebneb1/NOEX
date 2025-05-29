@@ -9,10 +9,36 @@ var buffer: Array = []
 var frames_per_push : int = Global.voip_sample_rate * 0.1
 var last_packet_number : int = -1
 var audio_playing = false
+
+const BUFFER_ACTIVATE_THRESHOLD = 10
+const MAX_DELTA = 0.2
+const EPSILON = 0.001
+
+var position_buffer_last_time : float = -1.0
+var position_save : Vector3
+var position_interpolate_timer = 0.0
+var position_idle_timer = 0.0
+var position_buffer = []
+var read_position_buffer : bool = false
+
+var rotation_buffer_last_time : float = -1.0
+var rotation_save : Vector2
+var rotation_interpolate_timer = 0.0
+var rotation_idle_timer = 0.0
+var rotation_buffer = []
+var read_rotation_buffer : bool = false
+#var interpolate_position : Vector3
+#var interpolate_position_time : float
+#var interpolate_rotation : Vector2
+#var interpolate_rotation_time : float
+#var pos_timer : float = 0.0
+#var rot_timer : float = 0.0
+
 @onready var playback_node: AudioStreamPlayer3D = $VOIPPlayback
 
 
 func _ready() -> void:
+	position_save = position
 	audio_stream = playback_node.stream
 	$Sprite3D/SubViewport/Label.text = player_name
 	#playback_node.stream.mix_rate = Global.voip_sample_rate
@@ -20,16 +46,145 @@ func _ready() -> void:
 	#voip_playback = playback_node.get_stream_playback()
 	Global.puppet_players.append(self)
 	Global.menu.update_players()
+	Debug.track(self, "position_buffer", false, "Buffer")
+	Debug.track(self, "position_interpolate_timer")
+	Debug.track(self, "position_buffer_last_time")
+	Debug.track(self, "position_save")
+	Debug.track(self, "position_buffer")
+	#Debug.track(self, "interpolate_rotation", true)
+	#Debug.track(self, "rotation.y", true, "horizontal")
+	#Debug.track($Face, "rotation.x", true, "vertical")
+	#Debug.track(self, "rot_timer", true)
+	#Debug.track(self, "interpolate_position", true)
+	#Debug.track(self, "position", true)
+	#Debug.track(self, "pos_timer", true)
 
+func push_to_position_buffer(location : Vector3, order : int, time : float):
+	if position_buffer_last_time < 0:
+		position_buffer_last_time = time
+		return
+	
+	if time - position_buffer_last_time > 0:
+		position_buffer.append([order, location, time - position_buffer_last_time])
+		position_buffer.sort_custom(sort_ascending)
+		position_buffer_last_time = time
+		
+	#else:
+		#Debug.push("Non-trashed, out-of-order packet?? WHAT, skipping", Debug.WARN)
+
+
+func push_to_rotation_buffer(rot : Vector2, order : int, time : float):
+	if rotation_buffer_last_time < 0:
+		rotation_buffer_last_time = time
+		return
+	
+	if time - rotation_buffer_last_time > 0:
+		rotation_buffer.append([order, rot, time - rotation_buffer_last_time])
+		rotation_buffer.sort_custom(sort_ascending)
+		rotation_buffer_last_time = time
 
 func update_volume(volume : float):
 	playback_node.volume_db = clamp(linear_to_db(volume), -INF, 10.0)
-	
+
+#func update_position(packet_data : Vector3, packet_time : float):
+	#position = interpolate_position
+	#pos_timer = 0.0
+	#interpolate_position = packet_data
+	#interpolate_position_time = packet_time
+#
+#func update_rotation(packet_data : Vector2, packet_time : float):
+	#rotation.y  = interpolate_rotation.x
+	#$Face.rotation.x = interpolate_rotation.y
+	#rot_timer = 0.0
+	#interpolate_rotation = Vector2(rotation.y, $Face.rotation.x) - packet_data
+	#interpolate_rotation_time = packet_time
+
 
 @onready var audio_stream : AudioStreamOpusChunked
 var prev_pushed_paket_number = -1
 
+func _physics_process(delta: float) -> void:
+	pass
+
 func _process(delta):
+	if position_buffer.size() >= BUFFER_ACTIVATE_THRESHOLD:
+		read_position_buffer = true
+	
+	elif position_buffer.size() == 0:
+		read_position_buffer = false
+	
+	elif not read_position_buffer:
+		position_idle_timer += delta
+		if position_idle_timer > MAX_DELTA:
+			read_position_buffer = true
+			
+	else:
+		position_idle_timer = 0.0
+	
+	if read_position_buffer:
+		if position_buffer[0][2] > MAX_DELTA:
+			position_buffer.pop_front()
+			
+		if position_buffer.size() != 0:
+			var curr_buffer = position_buffer[0]
+			
+			if position_interpolate_timer < curr_buffer[2]:
+				position = position_save.lerp(curr_buffer[1], clamp(position_interpolate_timer / curr_buffer[2], 0.0, 1.0))  
+			#
+			else:
+				position_save = position
+				position_interpolate_timer -= curr_buffer[2]
+				position_buffer.pop_front()
+			
+			position_interpolate_timer += delta
+	
+	if rotation_buffer.size() >= BUFFER_ACTIVATE_THRESHOLD:
+		read_rotation_buffer = true
+	
+	elif rotation_buffer.size() == 0:
+		read_rotation_buffer = false
+	
+	elif not read_rotation_buffer:
+		rotation_idle_timer += delta
+		if rotation_idle_timer > MAX_DELTA:
+			read_rotation_buffer = true
+			
+	else:
+		rotation_idle_timer = 0.0
+	
+	if read_rotation_buffer:
+		if rotation_buffer[0][2] > MAX_DELTA:
+			rotation_buffer.pop_front()
+			
+		if rotation_buffer.size() != 0:
+			var curr_buffer = rotation_buffer[0]
+			
+			if rotation_interpolate_timer < curr_buffer[2]:
+				var rot = rotation_save.lerp(curr_buffer[1], clamp(rotation_interpolate_timer / curr_buffer[2], 0.0, 1.0))
+				rotation.y = rot.x
+				$Face.rotation.x = rot.y
+			#
+			else:
+				rotation_save = Vector2(rotation.y, $Face.rotation.x)
+				rotation_interpolate_timer -= curr_buffer[2]
+				rotation_buffer.pop_front()
+			
+			rotation_interpolate_timer += delta
+	
+	#if pos_timer < interpolate_position_time:
+		#position += (position-interpolate_position).normalized()*delta*interpolate_position_time
+		#pos_timer += delta
+	#else:
+		#position = interpolate_position
+	#
+	#if rot_timer < interpolate_rotation_time:
+		#rotation.y += interpolate_rotation.x * delta * interpolate_rotation_time
+		#$Face.rotation.x = interpolate_rotation.y * delta * interpolate_rotation_time
+		#rot_timer += delta
+	#else:
+		#rotation.y = interpolate_rotation.x
+		#$Face.rotation.x = interpolate_rotation.y
+	
 	#print("qframes:", audio_stream.queue_length_frames())
 	#print("getlen:", audio_stream.get_length())
 	if debug: return

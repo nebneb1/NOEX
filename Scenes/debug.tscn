@@ -10,21 +10,38 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_04clu")
-container = NodePath("VBoxContainer")
+container = NodePath("MarginContainer/VBoxContainer")
 console = NodePath("ConsoleBg/ConsoleMargins/Console")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 0
+[node name="MarginContainer" type="MarginContainer" parent="."]
+z_index = 7
+layout_mode = 1
 offset_right = 40.0
-offset_bottom = 40.0
+offset_bottom = 50.0
+theme_override_constants/margin_left = 5
 
-[node name="Label" type="Label" parent="VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "1"
 
-[node name="Label2" type="Label" parent="VBoxContainer"]
+[node name="Label2" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "2"
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = -5
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = -5
+theme_override_constants/margin_bottom = -5
+
+[node name="ColorRect" type="ColorRect" parent="MarginContainer/MarginContainer"]
+z_index = -1
+layout_mode = 2
+color = Color(0, 0, 0, 0.596078)
 
 [node name="ConsoleBg" type="ColorRect" parent="."]
 layout_mode = 1

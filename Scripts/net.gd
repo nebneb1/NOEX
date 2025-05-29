@@ -26,33 +26,37 @@ var lobby_players : Array = []
 var max_players = 4
 
 var packet_number : int = 0
-var previous_packet_numbers : Dictionary = {
-	"LOOK_DIR" : 0,
-	"POSITION" : 0
-}
 
-var player_net_data = [
-	
-]
+#var player_net_data := {
+	#
+#}
 
 var voip_packet_number : int = 0
 
 # NETWORK DEBUG SETTINGS
-const PRINT_PACKET_DEBUG = false
+const PRINT_PACKET_DEBUG = true
 const AUTO_SETUP = true
 const AUTO_SETUP_FILE = "res://auto_join.dat"
 
 const ARTIFICIAL_LATENCY = true
-const PERCENT_PACKET_DROP = 1
-const DELAY = [1.00, 1.20]
+const PERCENT_PACKET_DROP = 20
+const DELAY = 120.0
+const VARIATION = 5.0
 
 func _ready() -> void:
 	Steam.lobby_created.connect(_on_lobby_created)
 	Steam.lobby_joined.connect(_on_lobby_joined)
 	Steam.p2p_session_request.connect(_on_session_request)
+	Debug.track(self, "ARTIFICIAL_LATENCY", false, "Artificial Latency Enabled")
+	
+	if ARTIFICIAL_LATENCY:
+		Debug.track(self, "DELAY", false, "Ping (ms)")
+		Debug.track(self, "VARIATION", false, "Ping Variation (ms)")
+		Debug.track(self, "PERCENT_PACKET_DROP", false, "Packet Drop %")
 
 func _process(delta: float) -> void:
 	if lobby_id > 0:
+		#print(Steam.getNumLobbyMembers(lobby_id))
 		read_all_packets()
 
 func create_lobby(type : Steam.LobbyType = Steam.LobbyType.LOBBY_TYPE_PUBLIC):
@@ -84,6 +88,8 @@ func _on_lobby_created(connect: int, id : int):
 			var file = FileAccess.open(AUTO_SETUP_FILE, FileAccess.WRITE)
 			file.store_var(lobby_id)
 			file.close()
+		else:
+			DisplayServer.clipboard_set(str(lobby_id))
 			
 		var set_relay : bool = Steam.allowP2PPacketRelay(true)
 
@@ -118,24 +124,34 @@ func get_lobby_players():
 		print(steam_username)
 		lobby_players.append({"steam_id": steam_id, "steam_name": steam_username})
 		
-		#player_net_data.append()
+		#if not steam_id in player_net_data.keys():
+			#player_net_data.get_or_add(steam_id, {
+				#"prev_packet_num": { 
+					#"LOOK_DIR" : 0,
+					#"POSITION" : 0
+				#},
+				#"prev_packet_time": {
+					#"LOOK_DIR" : 0.0,
+					#"POSITION" : 0.0
+				#}
+			#})
 
 
 func send(send_type : SendType, packet_type : PacketType, packet_data, reliable : bool, raw : bool = false, channel : int = 0, to_id : int = 0):
-	if ARTIFICIAL_LATENCY:
+	if ARTIFICIAL_LATENCY and packet_type:
 		if not reliable and randi_range(1, 100) <= PERCENT_PACKET_DROP:
 			return
-		await get_tree().create_timer(randf_range(DELAY[0], DELAY[1])).timeout
+		await get_tree().create_timer(randf_range((DELAY - VARIATION)/1000.0, (DELAY + VARIATION)/1000.0)).timeout
 	var packet
 	#if raw:
 		#packet = packet_data
 	#else:
 	match packet_type:
 		PacketType.VOICE:
-			packet = [voip_packet_number, PacketType.keys()[int(packet_type)], packet_data]
+			packet = [voip_packet_number, Time.get_unix_time_from_system(), PacketType.keys()[int(packet_type)], packet_data]
 			voip_packet_number += 1
 		_:
-			packet = [packet_number, PacketType.keys()[int(packet_type)], packet_data]
+			packet = [packet_number, Time.get_unix_time_from_system(), PacketType.keys()[int(packet_type)], packet_data]
 	packet_number += 1
 	
 	var packet_bytes : PackedByteArray
@@ -161,11 +177,12 @@ func read_all_packets(channel : int = 0):
 		read_packet(channel)
 		read_count += 1
 
-func out_of_order(num : int, type : String):
-	if num < previous_packet_numbers[type]:
-		return true
-	previous_packet_numbers[type] = num
-	return false
+#func out_of_order(num : int, sender : int,  type : String):
+	#var previous_packet_numbers = player_net_data[sender]["prev_packet_num"]
+	#if num < previous_packet_numbers[type]:
+		#return true
+	#previous_packet_numbers[type] = num
+	#return false
 
 func read_packet(channel : int = 0):
 	var packet_size = Steam.getAvailableP2PPacketSize(channel)
@@ -174,8 +191,10 @@ func read_packet(channel : int = 0):
 		var sender : int = packet["remote_steam_id"] 
 		var packet_data_raw = bytes_to_var(packet["data"])
 		var packet_number = packet_data_raw[0]
-		var packet_type = packet_data_raw[1]
-		var packet_data = packet_data_raw[2]
+		var packet_timestamp = packet_data_raw[1]
+		var packet_type = packet_data_raw[2]
+		var packet_data = packet_data_raw[3]
+		
 		#match typeof(packet_data_raw):
 			#TYPE_ARRAY:
 				#packet_type = packet_data_raw[0]
@@ -202,19 +221,38 @@ func read_packet(channel : int = 0):
 					Global.remove_puppet_player(sender)
 			
 			"POSITION":
-				if out_of_order(packet_number, "POSITION"): return
+				#if out_of_order(packet_number, sender, "POSITION"): return
+				#
+				#var time_since_last_packet = Time.get_unix_time_from_system() - player_net_data[sender]["prev_packet_time"]["POSITION"]
+				#player_net_data[sender]["prev_packet_time"]["POSITION"] = Time.get_unix_time_from_system()
+				
 				var puppet_player = Global.get_puppet_player(sender)
 				if puppet_player:
-					puppet_player.position = packet_data
+					puppet_player.push_to_position_buffer(packet_data, packet_number, packet_timestamp)
+					#puppet_player.update_position(packet_data, time_since_last_packet)
+					#puppet_player.position = puppet_player.interpolate_position
+					#puppet_player.pos_timer = 0.0
+					#puppet_player.interpolate_position = packet_data
+					#puppet_player.interpolate_position_time = time_since_last_packet
 				else : Global.create_puppet_player(sender)
 				
 			"LOOK_DIR":
-				if out_of_order(packet_number, "LOOK_DIR"): return
+				#if out_of_order(packet_number, sender, "LOOK_DIR"): return
+				
+				#var time_since_last_packet = Time.get_unix_time_from_system() - player_net_data[sender]["prev_packet_time"]["LOOK_DIR"]
+				#player_net_data[sender]["prev_packet_time"]["LOOK_DIR"] = Time.get_unix_time_from_system()
+				
 				var puppet_player = Global.get_puppet_player(sender)
 				if puppet_player:
-					puppet_player.rotation.y = packet_data.x
-					puppet_player.get_node("Face").rotation.x = packet_data.y
+					puppet_player.push_to_rotation_buffer(packet_data, packet_number, packet_timestamp)
+					#puppet_player.update_rotation(packet_data, time_since_last_packet)
+					#puppet_player.rotation.y  = puppet_player.interpolate_rotation.x
+					#puppet_player.get_node("Face").rotation.x = puppet_player.interpolate_rotation.y
+					#puppet_player.rot_timer = 0.0
+					#puppet_player.interpolate_rotation = Vector2(puppet_player.rotation.y, puppet_player.get_node("Face").rotation.x) - packet_data
+					#puppet_player.interpolate_rotation_time = time_since_last_packet
 				else : Global.create_puppet_player(sender)
+				#
 			
 			"VOICE":
 				var puppet_player = Global.get_puppet_player(sender)

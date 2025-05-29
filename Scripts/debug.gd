@@ -49,7 +49,6 @@ func _ready():
 		_update_list()
 	else:
 		hide()
-	track(self, "console_fade_timer")
 	
 	
 func _process(delta: float):
@@ -71,7 +70,7 @@ func _update():
 					
 				else:
 					label.text = value["object"].name + " - " + value["tag"] + ": " + str(value["object"].get(value["parameter"]))
-					if value["print"]: print(str(value["object"].get(value["parameter"])))
+					if value["print"]: print(value["object"].name + " - " + value["tag"] + ": " + str(value["object"].get(value["parameter"])))
 					
 			else: print("aa im missing my label this is the worst day of my short computer life...")
 
@@ -122,6 +121,7 @@ func push(item, tag := DEFAULT):
 	if tag == DEFAULT: out += "[i]"
 	if tag != INFO: out += "[%02d:%02d:%02d] " % [time.hour, time.minute, time.second]
 	if tag == ALERT: out += "ALERT: "
+	if tag == ALERT: out += "WARNING: "
 	if tag == DEFAULT: out += "[/i]"
 	out += item + "[/color]\n"
 	
@@ -132,7 +132,7 @@ func push(item, tag := DEFAULT):
 		#console.text = console.text + out
 	
 	if tag != ALERT: print("[%02d:%02d:%02d] " % [time.hour, time.minute, time.second], item)
-	else: print("[%02d:%02d:%02d] ALERT: " % [time.hour, time.minute, time.second], item)
+	else: printerr("[%02d:%02d:%02d] ALERT: " % [time.hour, time.minute, time.second], item)
 	
 	console_fade_timer = 0.0
 
