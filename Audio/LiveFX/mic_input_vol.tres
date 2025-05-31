@@ -1,0 +1,4 @@
+[gd_resource type="AudioEffectSpectrumAnalyzer" format=3 uid="uid://cd6f3xxep3amc"]
+
+[resource]
+resource_name = "SpectrumAnalyzer"

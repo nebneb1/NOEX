@@ -3,12 +3,6 @@ extends Control
 const start_level = "planet1"
 
 @onready var transitions: Control = $Transitions
-@onready var level_spawner: MultiplayerSpawner = $MultiplayerSpawner
-
-var lobby_id = 0
-var peer = SteamMultiplayerPeer.new()
-
-
 
 const levels = {
 	"planet1" = preload("res://Scenes/planet1.tscn")
@@ -19,19 +13,21 @@ const levels = {
 	"fade_from_black" : $Transitions/FadeFromBlack
 }
 
-var curr_level = ""
+var curr_level = "menu"
 
-
-func _ready() -> void:
-	level_spawner.spawn_function = load_scene
-	peer.lobby_created.connect(_on_lobby_created)
-
-func _process(delta: float) -> void:
-	var clip = DisplayServer.clipboard_get()
-	if int(clip) != 0 and len(clip) == 18:
-		join_lobby(clip)
-		DisplayServer.clipboard_set("")
-		
+func _ready():
+	Global.trans = self
+	if Net.AUTO_SETUP:
+		if FileAccess.file_exists(Net.AUTO_SETUP_FILE):
+			var file = FileAccess.open(Net.AUTO_SETUP_FILE, FileAccess.READ)
+			var lobby_id = file.get_var()
+			file.close()
+			var dir = DirAccess.open("res://")
+			dir.remove(Net.AUTO_SETUP_FILE.split("/")[-1])
+			join_lobby(lobby_id)
+		else:
+			host_lobby()
+#
 var window_focused = false
 func _notification(what):
 	if what == NOTIFICATION_FOCUS_ENTER:
@@ -40,21 +36,22 @@ func _notification(what):
 	elif what == NOTIFICATION_FOCUS_EXIT:
 		window_focused = false
 		
+		
 			
 func empty(): return
 
-func trans_to_level(level : String, type : String, time : float):
+func trans_to_level(level : String, type : String, time : float = 1.0):
 	match type:
 		"fade_from_black":
 			var tween = create_tween()
 			tween.tween_property(trans_nodes["fade_from_black"], "color:a", 1.0, time)
 			await tween.finished
-			switch_scene(levels[level])
+			switch_scene(level)
 			curr_level = level
 			var tween2 = create_tween()
 			tween2.tween_property(trans_nodes["fade_from_black"], "color:a", 0.0, time)
 
-func fake_trans_to_level(type : String, time : float, after : Callable = empty):
+func fake_trans_to_level(type : String, time : float = 1.0, after : Callable = empty):
 	match type:
 		"fade_from_black":
 			var tween = create_tween()
@@ -70,30 +67,27 @@ func fake_trans_to_level(type : String, time : float, after : Callable = empty):
 			tween.tween_property(trans_nodes["fade_from_black"], "color:a", 0.0, time)
 			after.call()
 
-func switch_scene(to: PackedScene):
+func switch_scene(to: String):
 	for child in level_holder.get_children():
 		child.queue_free()
-	level_holder.add_child(to.instantiate())
-
-func load_scene(level : String):
-	level_spawner.clear_spawnable_scenes()
-	return levels[level].instantiate()
-
+		
+	level_holder.add_child(levels[to].instantiate())
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("host") and curr_level == "":
-		fake_trans_to_level("from_black_one_way", 1.0)
-		peer.create_lobby(SteamMultiplayerPeer.LOBBY_TYPE_PUBLIC)
-		multiplayer.multiplayer_peer = peer
-		level_spawner.spawn(start_level)
+	if curr_level == "menu":
+		if event.is_action_pressed("host"):
+			host_lobby()
+			
+		elif event.is_action_pressed("join"):
+			#var id : int = int($LevelHolder/Control/TextEdit.text)
+			join_lobby(int($LevelHolder/Control/TextEdit.text))
 
-func join_lobby(id):
-	peer.connect_lobby(id)
-	multiplayer.multiplayer_peer = peer
+func host_lobby():
+	switch_scene(start_level)
+	fake_trans_to_level("from_black_one_way")
+	Net.create_lobby(Steam.LobbyType.LOBBY_TYPE_FRIENDS_ONLY)
 
-func _on_lobby_created(connect, id):
-	if connect:
-		lobby_id = id
-		Steam.setLobbyData(lobby_id, "name", str(Steam.getPersonaName()) + "'s Lobby")
-		Steam.setLobbyJoinable(lobby_id, true)
-		print(lobby_id)
+func join_lobby(id : int):
+	if id != 0:
+		fake_trans_to_level("from_black_one_way")
+		Net.join_lobby(id)
